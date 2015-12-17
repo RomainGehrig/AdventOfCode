@@ -4,8 +4,6 @@ f = open("input.txt", "r")
 lines = f.readlines()
 f.close()
 
-aunts = {}
-
 # Sue 1: cars: 9, akitas: 3, goldfish: 0
 sue_num = re.compile("Sue (\d+)")
 compounds_reg = re.compile("(\S+): (\d+)")
