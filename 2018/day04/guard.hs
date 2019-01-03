@@ -72,8 +72,8 @@ addEvent (GuardState gid st gm) (GuardWakesUp wt) = do
     writeArray gTable m (oldVal+1)
   return $ GuardState gid st gm'
 
-findBadGuard :: GuardState -> IO (Int, Int)
-findBadGuard gs = do
+findBadGuardStrat1 :: GuardState -> IO (Int, Int)
+findBadGuardStrat1 gs = do
   let gm = guardMinutes gs
   guards <- forM (M.assocs gm) $ \(guardId, minsArr) -> do
     mins <- getAssocs minsArr
@@ -81,10 +81,22 @@ findBadGuard gs = do
     return (sum $ map snd $ mins, (guardId, fst $ maximumBy (O.comparing snd) mins))
   return $ snd $ maximumBy (O.comparing fst) guards
 
+findBadGuardStrat2 :: GuardState -> IO (Int, Int)
+findBadGuardStrat2 gs = do
+  let gm = guardMinutes gs
+  guards <- forM (M.assocs gm) $ \(guardId, minsArr) -> do
+    mins <- getAssocs minsArr
+    -- Need (most slept minute, (guardId, index of most slept minute))
+    let mostSleptMin = maximumBy (O.comparing snd) mins
+    return (snd mostSleptMin, (guardId, fst mostSleptMin))
+  return $ snd $ maximumBy (O.comparing fst) guards
+
 main :: IO ()
 main = do
   events <- readInput
   let startingState = GuardState { currentGuard=0, asleepTime=defaultTime, guardMinutes=M.empty }
   finalState <- foldM addEvent startingState events
-  badGuard <- findBadGuard finalState
-  print $ (\(x,y) -> x*y) $ badGuard
+  badGuard1 <- findBadGuardStrat1 finalState
+  badGuard2 <- findBadGuardStrat2 finalState
+  print $ (\(x,y) -> x*y) $ badGuard1
+  print $ (\(x,y) -> x*y) $ badGuard2
