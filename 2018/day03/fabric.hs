@@ -4,6 +4,7 @@ import Text.ParserCombinators.Parsec
 import Data.Array.IO
 
 data Claim = Claim { claimId :: Int, pos :: (Int, Int), dim :: (Int, Int) } deriving Show
+type Grid = IOArray (Int, Int) Int
 
 claim :: Parser Claim
 claim = do
@@ -28,10 +29,14 @@ readInput = do
   let res = parse claims "" content
   return $ join $ rights [res]
 
-insertClaim :: IOArray (Int,Int) Int -> Claim -> IO ()
-insertClaim arr (Claim claimId (x,y) (dx, dy)) =
+claimedIndices :: Claim -> [(Int,Int)]
+claimedIndices (Claim claimId (x,y) (dx, dy)) =
+  [ (x + dxx, y + dyy) | dxx <- [0..dx-1], dyy <- [0..dy-1] ]
+
+insertClaim :: Grid -> Claim -> IO ()
+insertClaim arr c =
   -- [0 .. dx] valid ?
-  forM_ [ (x + dxx, y + dyy) | dxx <- [0..dx-1], dyy <- [0..dy-1] ] $ \i -> do
+  forM_ (claimedIndices c) $ \i -> do
     val <- readArray arr i
     writeArray arr i (val+1)
 
@@ -40,10 +45,18 @@ countClaims arr = do
   elems <- getElems arr
   return $ length $ filter (>=2) elems
 
+isNonOverlapping :: Grid -> Claim -> IO Bool
+isNonOverlapping arr claim = do
+  values <- mapM (readArray arr) (claimedIndices claim)
+  return $ all (==1) values
+
 main :: IO ()
 main = do
   claims <- readInput
   arr <- newArray ((0,0), (1000,1000)) 0
   mapM_ (insertClaim arr) claims
   count <- countClaims arr
+  nonOverlapping <- filterM (isNonOverlapping arr) claims
+
   print $ count
+  print $ claimId . head $ nonOverlapping
